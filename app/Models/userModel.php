@@ -9,11 +9,4 @@ class userModel extends Model{
     protected $allowedFields = ['LOGIN', 'SENHA', 'ATIVO', 'NOME_COMPLETO'];
 
 
-    public function getUser($ID = null){
-        if($ID === null){
-            return $this->findAll();     
-            // return $this->withDelete()->findAll();    
-        }
-        return $this->asArray()->where(['ID' => $ID])->first();
-    }
 }

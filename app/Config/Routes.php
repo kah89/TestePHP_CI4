@@ -39,6 +39,8 @@ $routes->match(['get','post'],'/save', 'User::save');
 $routes->match(['get','post'],'/auth', 'User::auth');
 $routes->match(['get','post'],'/list', 'User::list');
 $routes->get('logout', 'User::logout');
+$routes->get('success', 'User::success');
+$routes->get('delete', 'User::delete');
 
 /*
  * --------------------------------------------------------------------
