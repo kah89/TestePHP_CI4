@@ -2,169 +2,120 @@
 
 namespace App\Controllers;
 
+use CodeIgniter\API\ResponseTrait;
 use App\Models\userModel;
 use CodeIgniter\Controller;
 use Tests\Support\Models\UserModel as ModelsUserModel;
 use Exception;
 
-class User extends Controller
+
+class User extends BaseController
 {
     public function index()
     {
         helper(['form']);
-        $model = new userModel();
-        $data = [
-            'title' => 'Login',
-            'user' => $model->getUser()
-        ];
-
-        if ($this->request->getMethod() == 'post') {
-            //VALIDAÇÕES
-            $rules = [
-                'LOGIN' => 'required',
-                'SENHA' => 'required|validateUser[LOGIN,SENHA]',
-            ];
-
-            $errors = [
-                'SENHA' => [
-                    'validateUser' => 'Login ou senha não conferem'
-                ]
-            ];
-
-
-            if (!$this->validate($rules, $errors)) {
-                $data['validation'] = $this->validator;
-            } else {
-                $model =  new UserModel();
-                $user = $model->where('LOGIN', $this->request->getVar('LOGIN'))->first();
-                $this->setUserSession($user);
-                $acesso =  new LogAcesso();
-                $data = [
-                    'idUser' => $user['USUARIO_ID'],
-                ];
-
-                $acesso->save($data);
-                return redirect()->to('pesquisa_usuario');
-            }
-        }
-        
+           
+        // var_dump($data);exit;
         echo view('templates/header',);
-        echo view('pages/index' , $data);
+        echo view('pages/index');
         echo view('templates/footer', );
     }
 
-    //  public function logout()
-    // {
-    //     if (session()->has('userdata')) {
-    //         session()->destroy();
-    //         return redirect()->to(base_url() . '/login');
-    //     }
-    // }
-
-    public function cadastro()
+    public function save()
     {
-
-        $data = [
-            'title' => 'Inscreva-se',
+        //include helper form
+        helper(['form']);
+        //set rules validation form
+        $rules = [
+            'NOME_COMPLETO'          => 'required|min_length[3]|max_length[150]',
+            'LOGIN'         => 'required|min_length[3]|max_length[50]',
+            'ATIVO'         => 'required',
+            'SENHA'      => 'required|min_length[3]|max_length[20]'
         ];
-
-    //     helper(['form']);
-
-    //     if ($this->request->getMethod() == 'post') {
-    //         //VALIDAÇÕES
-    //         $rules = [
-    //             'Nome' => 'required|min_length[3]|max_length[100]',
-    //             'login' => 'required|min_length[3]|max_length[20]',
-    //             'ativo' => 'required',
-    //             'senha' => 'required|min_length[8]|max_length[255]',
-    //             'senha_confirmacao' => 'matches[senha]',
-    //         ];
-
-    //         if (!$this->validate($rules)) {
-    //             $data['validation'] = $this->validator;
-    //         } else {
-    //             //salva no BD
-    //             $model =  new UserModel();
-
-    //             $newData = [
-    //                 'firstname' => $this->request->getVar('nome'),
-    //                 'lastname' => $this->request->getVar('sobrenome'),
-    //                 'email' => $this->request->getVar('email'),
-    //                 'pais' => $this->request->getVar('paises'),
-    //                 'estado' => $this->request->getVar('estados'),
-    //                 'cidade' => $this->request->getVar('cidades'),
-    //                 'type' => (int) $this->request->getVar('categoria'),
-    //                 'uf' => $this->request->getVar('uf'),
-    //                 'crf' => $this->request->getVar('crf'),
-    //                 'telefone' => $this->request->getVar('telefone'),
-    //                 'celular' => $this->request->getVar('celular'),
-    //                 'cpf' => $this->request->getVar('cpf'),
-    //                 'password' => $this->request->getVar('senha'),
-    //             ];
-
-    //             // var_dump($newData); exit;
-
-    //             if ($model->save($newData)) {
-    //                 if ($this->sendEmail($newData)) {
-    //                     $session = session();
-    //                     $session->setFlashdata('success', 'Sua inscrição foi recebida com sucesso!');
-    //                     return redirect()->to(base_url());
-    //                 } else {
-    //                     echo "Erro ao enviar email";
-    //                     exit;
-    //                 }
-    //             } else {
-    //                 echo "Erro ao salvar";
-    //                 exit;
-    //             }
-    //         }
-    //     }
-
-        echo view('templates/header',);
-        echo view('cadastro_usuarios');
-        echo view('templates/footer');
+          
+        if($this->validate($rules)){
+            $model = new UserModel();
+            $data = [
+                'NOME_COMPLETO'     => $this->request->getVar('NOME_COMPLETO'),
+                'LOGIN'    => $this->request->getVar('LOGIN'),
+                'ATIVO'    => $this->request->getVar('ATIVO'),
+                'SENHA' => $this->request->getVar('SENHA')
+            ];
+            $model->save($data);
+            return redirect()->to('./');
+        }else{
+            $data['validation'] = $this->validator;
+            echo view('templates/header',);
+            echo view('pages/cadastro_usuarios', $data);
+            echo view('templates/footer', );
+        }
+          
     }
 
-    // public function create(){
-    //     helper('form');
+    public function auth()
+    {
+        $session = session();
+        $model = new UserModel();
+        $LOGIN = $this->request->getVar('LOGIN');
+        $SENHA = $this->request->getVar('SENHA');
+        $data = $model->where('LOGIN', $LOGIN)->first();
+        // var_dump($SENHA);exit;
+        if($data){
+            $pass = $data['SENHA'];
+            // var_dump($SENHA, $pass);die;
+            // $verify_pass = password_verify($SENHA, $pass);
+            // var_dump($SENHA, $pass, $verify_pass);die;
+            // if($verify_pass){
+                if($pass == $SENHA){
+                $ses_data = [
+                    'USUARIO_ID'       => $data['USUARIO_ID'],
+                    'NOME_COMPLETO'     => $data['NOME_COMPLETO'],
+                    'LOGIN'    => $data['LOGIN'],
+                    'logged_in'     => TRUE
+                ];
+                // var_dump($ses_data);die;
+                $session->set($ses_data);
+                return redirect()->to(\base_url('/user/list'));
+            }else{
+                $session->setFlashdata('msg', 'Login ou Senha incorretos');
+                return redirect()->to('./User');
+            }
+        }else{
+            $session->setFlashdata('msg', 'Login não encontrado');
+            return redirect()->to('pages/index');
+        }
+    }
+  
+    public function logout()
+    {
+        session()->destroy();
+        return redirect()->to(base_url());
+    }
+    
 
-    //     echo view('templates/header',);
-    //     echo view('pages/form' );
-    //     echo view('templates/footer', );
-    // }
-
-    // public function store(){
-    //     helper('form');
-
-    //     $model = new userModel();
-    //     $rules = [
-    //         'NomeCompleto' =>'required|min_length[6]|max_length[100]|',
-    //         'Email' => 'required|min_length[6]|max_length[100]|valid_email'
-    //     ];
-
-    //     if($this->validate($rules)){
-    //         $model->save([
-    //             'ID' => $this->request->getVar('ID'), 
-    //             'NomeCompleto' => $this->request->getVar('NomeCompleto'),
-    //             'Email' => $this->request->getVar('Email'),
-    //         ]);
+    public function list(){
         
+            $model = new userModel();
+            $data = [
+                // 'data' => $model->getUser()
+                'data' => $model->findAll()
+            ];
+            
+            // var_dump($data); exit;
 
-    //     echo view('templates/header');
-    //     echo view('pages/success' );
-    //     } else {
-    //         echo view('templates/header',);
-    //         echo view('pages/form' );
-    //         echo view('templates/footer', );
-    //     }
-    // }
- 
+            echo view('templates/header');
+            echo view('pages/pesquisa_usuarios',$data  );
+            echo view('templates/footer');
+        
+    }
 
-    // public function delete($ID = null){
-    //     $model = new userModel();
-    //     $model->delete($ID);
+    
+    public function delete($USUARIO_ID = null){
+        $model = new userModel();
+        $model->delete($USUARIO_ID);
 
-    //     echo view('templates/header');
-    //     echo view('pages/delete_success' );
-    // }
+        echo view('templates/header');
+        echo view('/user/list' );
+            
+    }
 }
